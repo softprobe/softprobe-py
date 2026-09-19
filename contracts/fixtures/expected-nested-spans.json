@@ -1,0 +1,184 @@
+[
+  {
+    "name": "agent.run",
+    "observation_type": "agent",
+    "parent_name": null,
+    "attributes": {
+      "sp.observation.type": "agent",
+      "sp.session.id": "sess-contract-1",
+      "gen_ai.conversation.id": "sess-contract-1",
+      "sp.user.id": "user-contract-1",
+      "sp.tags": [
+        "contract",
+        "nested"
+      ],
+      "sp.input": "{\"goal\":\"answer question\"}"
+    },
+    "events": [],
+    "status_code": "OK",
+    "status_message": null
+  },
+  {
+    "name": "chain.plan",
+    "observation_type": "chain",
+    "parent_name": "agent.run",
+    "attributes": {
+      "sp.observation.type": "chain",
+      "sp.session.id": "sess-contract-1",
+      "gen_ai.conversation.id": "sess-contract-1"
+    },
+    "events": [],
+    "status_code": "OK",
+    "status_message": null
+  },
+  {
+    "name": "embedding.encode",
+    "observation_type": "embedding",
+    "parent_name": "retriever.search",
+    "attributes": {
+      "gen_ai.request.model": "text-embedding-3-small",
+      "gen_ai.usage.input_tokens": 12,
+      "gen_ai.usage.total_tokens": 12,
+      "sp.observation.type": "embedding"
+    },
+    "events": [],
+    "status_code": "OK",
+    "status_message": null
+  },
+  {
+    "name": "evaluator.quality",
+    "observation_type": "evaluator",
+    "parent_name": "agent.run",
+    "attributes": {
+      "sp.observation.type": "evaluator",
+      "sp.output": "{\"score\":0.9}"
+    },
+    "events": [],
+    "status_code": "OK",
+    "status_message": null
+  },
+  {
+    "name": "generation.answer",
+    "observation_type": "generation",
+    "parent_name": "agent.run",
+    "attributes": {
+      "sp.tool.available_names": [
+        "lookup"
+      ],
+      "sp.tool.available_count": 1,
+      "sp.tool.call_names": [
+        "lookup"
+      ],
+      "sp.tool.call_count": 1,
+      "sp.tool.call_ids": [
+        "call_lookup_1"
+      ],
+      "sp.session.id": "sess-contract-1",
+      "gen_ai.conversation.id": "sess-contract-1",
+      "sp.input": "{\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}]}",
+      "sp.output": "{\"content\":null,\"tool_calls\":[{\"id\":\"call_lookup_1\",\"name\":\"lookup\",\"arguments\":\"{\\\"name\\\":\\\"lookup\\\"}\"}]}",
+      "gen_ai.operation.name": "chat",
+      "gen_ai.provider.name": "openai",
+      "gen_ai.request.model": "gpt-4o-mini",
+      "gen_ai.request.temperature": 0.2,
+      "gen_ai.request.max_tokens": 128,
+      "gen_ai.usage.input_tokens": 100,
+      "gen_ai.usage.output_tokens": 25,
+      "gen_ai.usage.total_tokens": 125,
+      "sp.cost.input": 0.0001,
+      "sp.cost.output": 0.0002,
+      "sp.cost.total": 0.0003,
+      "sp.prompt.name": "answer",
+      "sp.prompt.version": 1,
+      "sp.observation.type": "generation",
+      "gen_ai.response.model": "gpt-4o-mini-2024-07-18",
+      "gen_ai.response.id": "chatcmpl-contract-1",
+      "gen_ai.response.finish_reasons": [
+        "tool_calls"
+      ]
+    },
+    "events": [
+      {
+        "name": "gen_ai.content.prompt",
+        "attributes": {
+          "content": "[{\"role\":\"user\",\"content\":\"hi\"}]"
+        }
+      },
+      {
+        "name": "gen_ai.content.completion",
+        "attributes": {
+          "content": "[{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"id\":\"call_lookup_1\",\"name\":\"lookup\",\"arguments\":\"{\\\"name\\\":\\\"lookup\\\"}\"}]}]"
+        }
+      },
+      {
+        "name": "gen_ai.client.inference.operation.details",
+        "attributes": {
+          "content": "{\"provider\":\"openai\",\"model\":\"gpt-4o-mini\"}"
+        }
+      }
+    ],
+    "status_code": "OK",
+    "status_message": null
+  },
+  {
+    "name": "guardrail.check",
+    "observation_type": "guardrail",
+    "parent_name": "agent.run",
+    "attributes": {
+      "sp.observation.type": "guardrail",
+      "sp.output": "{\"passed\":true}"
+    },
+    "events": [],
+    "status_code": "OK",
+    "status_message": null
+  },
+  {
+    "name": "retriever.search",
+    "observation_type": "retriever",
+    "parent_name": "chain.plan",
+    "attributes": {
+      "sp.observation.type": "retriever",
+      "sp.input": "{\"query\":\"docs\"}",
+      "sp.output": "{\"docs\":[\"a\",\"b\"]}"
+    },
+    "events": [],
+    "status_code": "OK",
+    "status_message": null
+  },
+  {
+    "name": "span.helper",
+    "observation_type": "span",
+    "parent_name": "agent.run",
+    "attributes": {
+      "sp.observation.type": "span"
+    },
+    "events": [],
+    "status_code": "OK",
+    "status_message": null
+  },
+  {
+    "name": "tool.lookup",
+    "observation_type": "tool",
+    "parent_name": "generation.answer",
+    "attributes": {
+      "gen_ai.tool.name": "lookup",
+      "gen_ai.tool.call.id": "call_lookup_1",
+      "sp.tool.kind": "function",
+      "sp.tool.status": "ok",
+      "sp.tool.index": 0,
+      "sp.observation.type": "tool",
+      "sp.input": "{\"name\":\"lookup\"}",
+      "sp.output": "{\"ok\":true}"
+    },
+    "events": [
+      {
+        "name": "gen_ai.tool.message",
+        "attributes": {
+          "content": "{\"role\":\"tool\",\"name\":\"lookup\",\"tool_call_id\":\"call_lookup_1\",\"content\":\"ok\"}"
+        }
+      }
+    ],
+    "status_code": "OK",
+    "status_message": null
+  }
+]

@@ -1,0 +1,18 @@
+{
+  "redactKeys": ["password", "api_key", "authorization", "secret", "token"],
+  "redactedPlaceholder": "[REDACTED]",
+  "exampleInput": {
+    "messages": [
+      { "role": "user", "content": "hello" }
+    ],
+    "password": "should-not-leak",
+    "api_key": "sk-test"
+  },
+  "exampleOutputCaptured": {
+    "messages": [
+      { "role": "user", "content": "hello" }
+    ],
+    "password": "[REDACTED]",
+    "api_key": "[REDACTED]"
+  }
+}

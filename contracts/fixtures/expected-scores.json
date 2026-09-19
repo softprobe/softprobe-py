@@ -1,0 +1,53 @@
+[
+  {
+    "score_id": "score-span-contract-1",
+    "timestamp": "2024-07-19T12:00:00Z",
+    "trace_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "span_id": "bbbbbbbbbbbbbbbb",
+    "session_id": null,
+    "name": "faithfulness",
+    "data_type": "numeric",
+    "numeric_value": 0.91,
+    "string_value": null,
+    "boolean_value": null,
+    "source": "evaluator",
+    "comment": "span score",
+    "config_id": null,
+    "author_id": null,
+    "metadata": { "suite": "contract" }
+  },
+  {
+    "score_id": "score-trace-contract-1",
+    "timestamp": "2024-07-19T12:00:01Z",
+    "trace_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "span_id": null,
+    "session_id": null,
+    "name": "quality",
+    "data_type": "categorical",
+    "numeric_value": null,
+    "string_value": "good",
+    "boolean_value": null,
+    "source": "api",
+    "comment": "trace score",
+    "config_id": null,
+    "author_id": null,
+    "metadata": { "suite": "contract" }
+  },
+  {
+    "score_id": "score-session-contract-1",
+    "timestamp": "2024-07-19T12:00:02Z",
+    "trace_id": null,
+    "span_id": null,
+    "session_id": "sess-contract-1",
+    "name": "thumbs",
+    "data_type": "boolean",
+    "numeric_value": null,
+    "string_value": null,
+    "boolean_value": true,
+    "source": "user",
+    "comment": "session score",
+    "config_id": null,
+    "author_id": "user-contract-1",
+    "metadata": { "suite": "contract" }
+  }
+]

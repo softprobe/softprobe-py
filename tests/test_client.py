@@ -12,7 +12,7 @@ from softprobe.redaction import redact_value
 from softprobe.scores import build_score_request
 from softprobe.types import ScoreRequest, ScoreTransport
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT / "contracts" / "fixtures"
 
 
