@@ -31,8 +31,9 @@ span. Execution spans are app-owned — wrap each tool run yourself::
 from __future__ import annotations
 
 import os
-from typing import Any, Mapping, MutableMapping, Optional
+from collections.abc import Mapping, MutableMapping
 from types import SimpleNamespace
+from typing import Any
 
 from softprobe.client import SoftprobeClient
 from softprobe.observation import Generation
@@ -339,8 +340,8 @@ def observe_openai(
 
 def create_openai_client(
     *,
-    api_key: Optional[str] = None,
-    base_url: Optional[str] = None,
+    api_key: str | None = None,
+    base_url: str | None = None,
     **kwargs: Any,
 ) -> Any:
     """Create a plain OpenAI client (requires the optional `openai` extra)."""
@@ -355,7 +356,7 @@ def create_openai_client(
 
 def create_gemini_openai_client(
     *,
-    api_key: Optional[str] = None,
+    api_key: str | None = None,
     model: str = DEFAULT_GEMINI_MODEL,
     **kwargs: Any,
 ) -> Any:

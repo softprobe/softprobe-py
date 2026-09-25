@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
+from typing import Any
 from uuid import UUID
 
 from softprobe.client import SoftprobeClient
@@ -19,8 +20,8 @@ from softprobe.tools import (
 )
 
 try:
-    from langchain_core.callbacks import BaseCallbackHandler
     from langchain_core.agents import AgentAction, AgentFinish
+    from langchain_core.callbacks import BaseCallbackHandler
     from langchain_core.documents import Document
     from langchain_core.messages import BaseMessage
     from langchain_core.outputs import ChatGeneration, LLMResult
@@ -143,15 +144,15 @@ class CallbackHandler(BaseCallbackHandler):
         self._metadata = dict(metadata or {})
         self._version = version
         self._trace_context = dict(trace_context or {})
-        self._runs: Dict[UUID, Union[Observation, Generation]] = {}
-        self._completion_start: Dict[UUID, str] = {}
-        self._tool_meta: Dict[UUID, dict[str, Any]] = {}
+        self._runs: dict[UUID, Observation | Generation] = {}
+        self._completion_start: dict[UUID, str] = {}
+        self._tool_meta: dict[UUID, dict[str, Any]] = {}
         self.last_trace_id: str | None = None
 
     def flush(self, timeout_millis: int = 30_000) -> bool:
         return self._client.flush(timeout_millis)
 
-    def _parent(self, parent_run_id: Optional[UUID]) -> Observation | None:
+    def _parent(self, parent_run_id: UUID | None) -> Observation | None:
         if parent_run_id is None:
             return None
         return self._runs.get(parent_run_id)
@@ -160,7 +161,7 @@ class CallbackHandler(BaseCallbackHandler):
         self,
         *,
         run_id: UUID,
-        parent_run_id: Optional[UUID],
+        parent_run_id: UUID | None,
         name: str,
         as_type: str,
         input: Any = None,
@@ -240,13 +241,13 @@ class CallbackHandler(BaseCallbackHandler):
     def on_chain_start(
         self,
         serialized: dict[str, Any],
-        inputs: Dict[str, Any],
+        inputs: dict[str, Any],
         *,
         run_id: UUID,
-        parent_run_id: Optional[UUID] = None,
-        tags: Optional[List[str]] = None,
-        metadata: Optional[Dict[str, Any]] = None,
-        name: Optional[str] = None,
+        parent_run_id: UUID | None = None,
+        tags: list[str] | None = None,
+        metadata: dict[str, Any] | None = None,
+        name: str | None = None,
         **kwargs: Any,
     ) -> Any:
         run_name = name or (
@@ -279,7 +280,7 @@ class CallbackHandler(BaseCallbackHandler):
             )
 
     def on_chain_end(
-        self, outputs: Dict[str, Any], *, run_id: UUID, **kwargs: Any
+        self, outputs: dict[str, Any], *, run_id: UUID, **kwargs: Any
     ) -> Any:
         self._end(run_id, output=outputs)
 
@@ -310,14 +311,14 @@ class CallbackHandler(BaseCallbackHandler):
     def on_chat_model_start(
         self,
         serialized: dict[str, Any],
-        messages: List[List[BaseMessage]],
+        messages: list[list[BaseMessage]],
         *,
         run_id: UUID,
-        parent_run_id: Optional[UUID] = None,
-        tags: Optional[List[str]] = None,
-        metadata: Optional[Dict[str, Any]] = None,
-        name: Optional[str] = None,
-        invocation_params: Optional[Dict[str, Any]] = None,
+        parent_run_id: UUID | None = None,
+        tags: list[str] | None = None,
+        metadata: dict[str, Any] | None = None,
+        name: str | None = None,
+        invocation_params: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> Any:
         flat = [_message_to_dict(m) for batch in messages for m in batch]
@@ -357,14 +358,14 @@ class CallbackHandler(BaseCallbackHandler):
     def on_llm_start(
         self,
         serialized: dict[str, Any],
-        prompts: List[str],
+        prompts: list[str],
         *,
         run_id: UUID,
-        parent_run_id: Optional[UUID] = None,
-        tags: Optional[List[str]] = None,
-        metadata: Optional[Dict[str, Any]] = None,
-        name: Optional[str] = None,
-        invocation_params: Optional[Dict[str, Any]] = None,
+        parent_run_id: UUID | None = None,
+        tags: list[str] | None = None,
+        metadata: dict[str, Any] | None = None,
+        name: str | None = None,
+        invocation_params: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> Any:
         model = _extract_model_name(serialized, metadata, invocation_params)
@@ -429,11 +430,11 @@ class CallbackHandler(BaseCallbackHandler):
         input_str: str,
         *,
         run_id: UUID,
-        parent_run_id: Optional[UUID] = None,
-        tags: Optional[List[str]] = None,
-        metadata: Optional[Dict[str, Any]] = None,
-        name: Optional[str] = None,
-        inputs: Optional[Dict[str, Any]] = None,
+        parent_run_id: UUID | None = None,
+        tags: list[str] | None = None,
+        metadata: dict[str, Any] | None = None,
+        name: str | None = None,
+        inputs: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> Any:
         run_name = name or serialized.get("name") or "tool"
@@ -490,10 +491,10 @@ class CallbackHandler(BaseCallbackHandler):
         query: str,
         *,
         run_id: UUID,
-        parent_run_id: Optional[UUID] = None,
-        tags: Optional[List[str]] = None,
-        metadata: Optional[Dict[str, Any]] = None,
-        name: Optional[str] = None,
+        parent_run_id: UUID | None = None,
+        tags: list[str] | None = None,
+        metadata: dict[str, Any] | None = None,
+        name: str | None = None,
         **kwargs: Any,
     ) -> Any:
         run_name = name or serialized.get("name") or "retriever"
@@ -530,12 +531,8 @@ class CallbackHandler(BaseCallbackHandler):
 
 
 # Zero-setup: env auto-instrument + explicit instrument() / uninstrument().
-from softprobe.langchain_instrument import (  # noqa: E402
+from softprobe.langchain_instrument import (
     auto_instrument_from_env,
-    get_handler,
-    instrument,
-    is_instrumented,
-    uninstrument,
 )
 
 auto_instrument_from_env()

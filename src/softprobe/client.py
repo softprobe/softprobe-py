@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import AsyncIterator, Iterator, Mapping
 from contextlib import asynccontextmanager, contextmanager
 from datetime import datetime
-from typing import Any, AsyncIterator, Iterator, Mapping
+from typing import Any
 
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.resources import Resource
@@ -156,7 +157,7 @@ class SoftprobeClient:
         trace_name: str | None = None,
         parent: Observation | None = None,
         trace_context: Mapping[str, str] | None = None,
-        start_time: datetime | float | int | None = None,
+        start_time: datetime | float | None = None,
     ) -> Observation:
         self._assert_active()
         return start_observation(

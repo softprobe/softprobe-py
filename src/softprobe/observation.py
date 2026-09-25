@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from collections.abc import Generator, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Generator, Mapping, Union
+from typing import Any, Union
 
 from opentelemetry import context as otel_context
 from opentelemetry import trace
@@ -13,8 +14,8 @@ from opentelemetry.trace import (
     SpanContext,
     Status,
     StatusCode,
-    Tracer,
     TraceFlags,
+    Tracer,
 )
 
 from softprobe.attributes import (
@@ -54,7 +55,7 @@ def _otel_attrs(attrs: Attributes) -> dict[str, Any]:
 
 def _resolve_parent_context(
     *,
-    parent: "Observation | None" = None,
+    parent: Observation | None = None,
     trace_context: Mapping[str, str] | None = None,
 ) -> Any | None:
     if parent is not None:

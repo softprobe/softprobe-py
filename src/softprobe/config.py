@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import os
-from typing import Any, Mapping, TypedDict
+from collections.abc import Mapping
+from typing import Any, TypedDict
 
 
 class ResolvedSoftprobeConfig(TypedDict, total=False):
