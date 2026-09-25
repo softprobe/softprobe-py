@@ -39,18 +39,27 @@ def resolve_softprobe_config_from_env(
     base_url = as_non_empty_string(source.get("SOFTPROBE_BASE_URL"))
     if not public_key or not base_url:
         return None
-    return ResolvedSoftprobeConfig(
-        public_key=public_key,
-        base_url=base_url,
-        otlp_endpoint=derive_otlp_endpoint(
+    cfg: ResolvedSoftprobeConfig = {
+        "public_key": public_key,
+        "base_url": base_url,
+        "otlp_endpoint": derive_otlp_endpoint(
             base_url,
             as_non_empty_string(source.get("SOFTPROBE_OTLP_ENDPOINT")),
         ),
-        environment=as_non_empty_string(source.get("SOFTPROBE_ENVIRONMENT")),
-        session_id=as_non_empty_string(source.get("SOFTPROBE_SESSION_ID")),
-        user_id=as_non_empty_string(source.get("SOFTPROBE_USER_ID")),
-        service_name=as_non_empty_string(source.get("SOFTPROBE_SERVICE_NAME")),
-    )
+    }
+    environment = as_non_empty_string(source.get("SOFTPROBE_ENVIRONMENT"))
+    if environment is not None:
+        cfg["environment"] = environment
+    session_id = as_non_empty_string(source.get("SOFTPROBE_SESSION_ID"))
+    if session_id is not None:
+        cfg["session_id"] = session_id
+    user_id = as_non_empty_string(source.get("SOFTPROBE_USER_ID"))
+    if user_id is not None:
+        cfg["user_id"] = user_id
+    service_name = as_non_empty_string(source.get("SOFTPROBE_SERVICE_NAME"))
+    if service_name is not None:
+        cfg["service_name"] = service_name
+    return cfg
 
 
 def resolve_softprobe_config_from_mapping(raw: Mapping[str, Any]) -> ResolvedSoftprobeConfig:
@@ -59,12 +68,21 @@ def resolve_softprobe_config_from_mapping(raw: Mapping[str, Any]) -> ResolvedSof
     if not public_key or not base_url:
         raise MissingSoftprobeCredentialsError("public_key and base_url are required")
     explicit = as_non_empty_string(raw.get("otlp_endpoint") or raw.get("otlpEndpoint"))
-    return ResolvedSoftprobeConfig(
-        public_key=public_key,
-        base_url=base_url,
-        otlp_endpoint=derive_otlp_endpoint(base_url, explicit),
-        environment=as_non_empty_string(raw.get("environment")),
-        session_id=as_non_empty_string(raw.get("session_id") or raw.get("sessionId")),
-        user_id=as_non_empty_string(raw.get("user_id") or raw.get("userId")),
-        service_name=as_non_empty_string(raw.get("service_name") or raw.get("serviceName")),
-    )
+    cfg: ResolvedSoftprobeConfig = {
+        "public_key": public_key,
+        "base_url": base_url,
+        "otlp_endpoint": derive_otlp_endpoint(base_url, explicit),
+    }
+    environment = as_non_empty_string(raw.get("environment"))
+    if environment is not None:
+        cfg["environment"] = environment
+    session_id = as_non_empty_string(raw.get("session_id") or raw.get("sessionId"))
+    if session_id is not None:
+        cfg["session_id"] = session_id
+    user_id = as_non_empty_string(raw.get("user_id") or raw.get("userId"))
+    if user_id is not None:
+        cfg["user_id"] = user_id
+    service_name = as_non_empty_string(raw.get("service_name") or raw.get("serviceName"))
+    if service_name is not None:
+        cfg["service_name"] = service_name
+    return cfg

@@ -93,8 +93,10 @@ def _extract_model_name(
     metadata: Mapping[str, Any] | None,
     invocation_params: Mapping[str, Any] | None,
 ) -> str | None:
-    if metadata and isinstance(metadata.get("ls_model_name"), str):
-        return metadata["ls_model_name"]
+    if metadata:
+        ls_model_name = metadata.get("ls_model_name")
+        if isinstance(ls_model_name, str):
+            return ls_model_name
     if invocation_params:
         for key in ("model", "model_name", "model_id"):
             value = invocation_params.get(key)
@@ -165,7 +167,7 @@ class CallbackHandler(BaseCallbackHandler):
         metadata: Mapping[str, Any] | None = None,
         tags: list[str] | None = None,
         **kwargs: Any,
-    ) -> Observation:
+    ) -> Observation | Generation:
         parent = self._parent(parent_run_id)
         merged_meta = dict(self._metadata)
         if metadata:
@@ -189,6 +191,7 @@ class CallbackHandler(BaseCallbackHandler):
         if parent is None and self._trace_context:
             start_kwargs["trace_context"] = self._trace_context
         start_kwargs.update(kwargs)
+        obs: Observation | Generation
         if as_type == "generation":
             gen_kwargs = {k: v for k, v in start_kwargs.items() if k != "as_type"}
             obs = self._client.start_generation(**gen_kwargs)
@@ -218,7 +221,16 @@ class CallbackHandler(BaseCallbackHandler):
         self._completion_start.pop(run_id, None)
         self._tool_meta.pop(run_id, None)
 
-    def on_llm_new_token(self, token: str, *, run_id: UUID, **kwargs: Any) -> Any:
+    def on_llm_new_token(
+        self,
+        token: str | list[str | dict[str, Any]],
+        *,
+        chunk: Any = None,
+        run_id: UUID,
+        parent_run_id: UUID | None = None,
+        tags: list[str] | None = None,
+        **kwargs: Any,
+    ) -> Any:
         if run_id not in self._completion_start and run_id in self._runs:
             self._completion_start[run_id] = _now_iso()
             obs = self._runs[run_id]
