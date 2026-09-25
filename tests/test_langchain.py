@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import os
 from uuid import uuid4
 
 from langchain_core.callbacks.manager import CallbackManager
@@ -20,7 +19,7 @@ from softprobe.langchain_instrument import (
     uninstrument,
 )
 from softprobe.normalize import normalize_readable_spans
-from softprobe.types import ScoreTransport, ScoreRequest
+from softprobe.types import ScoreRequest, ScoreTransport
 
 
 class MemoryScoreTransport(ScoreTransport):

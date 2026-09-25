@@ -19,6 +19,7 @@ from softprobe.types import OBSERVATION_TYPES
 
 __all__ = [
     "OBSERVATION_TYPES",
+    "CallbackHandler",
     "Generation",
     "Observation",
     "SoftprobeClient",
@@ -28,13 +29,12 @@ __all__ = [
     "finalize_tool_call_deltas",
     "normalize_tool_calls",
     "normalize_tool_definitions",
+    "observe_openai",
     "propagate_attributes",
     "record_tool_calls",
     "record_tool_definitions",
     "redact_value",
     "tool_result_event_payload",
-    "observe_openai",
-    "CallbackHandler",
 ]
 
 

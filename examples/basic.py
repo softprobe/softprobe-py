@@ -23,18 +23,17 @@ def main() -> None:
         as_type="agent",
         session_id=session_id,
         input={"goal": "say hello"},
-    ) as agent:
-        with client.generation(
-            name="example.generation",
-            parent=agent,
-            session_id=session_id,
-            model="example-model",
-            provider="example",
-            input={"messages": [{"role": "user", "content": "hello"}]},
-            usage={"input_tokens": 4, "output_tokens": 6},
-            output={"content": "hello from Softprobe"},
-        ):
-            pass
+    ) as agent, client.generation(
+        name="example.generation",
+        parent=agent,
+        session_id=session_id,
+        model="example-model",
+        provider="example",
+        input={"messages": [{"role": "user", "content": "hello"}]},
+        usage={"input_tokens": 4, "output_tokens": 6},
+        output={"content": "hello from Softprobe"},
+    ):
+        pass
 
     client.force_flush()
     client.shutdown()

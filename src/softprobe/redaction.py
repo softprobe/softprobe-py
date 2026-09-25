@@ -53,7 +53,7 @@ def _to_jsonable(value: Any) -> Any:
                 return _to_jsonable(value.model_dump())
             except Exception:
                 return str(value)
-    if hasattr(value, "dict") and callable(getattr(value, "dict")):
+    if hasattr(value, "dict") and callable(value.dict):
         try:
             return _to_jsonable(value.dict())
         except Exception:

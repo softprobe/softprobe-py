@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Generator, Mapping
 from contextlib import contextmanager
 from contextvars import ContextVar, Token
-from typing import Any, Generator, Mapping
+from typing import Any
 
 _propagation: ContextVar[dict[str, Any] | None] = ContextVar(
     "softprobe_propagation", default=None

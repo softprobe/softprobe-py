@@ -19,9 +19,7 @@ def _normalize_one(span: ReadableSpan, by_id: dict[str, ReadableSpan]) -> Normal
     for key, value in (span.attributes or {}).items():
         if value is None:
             continue
-        if isinstance(value, tuple):
-            attributes[key] = list(value)
-        elif isinstance(value, list):
+        if isinstance(value, (tuple, list)):
             attributes[key] = list(value)
         else:
             attributes[key] = value

@@ -131,22 +131,21 @@ def test_contract_nested_spans_match_fixture() -> None:
             name="chain.plan",
             as_type="chain",
             session_id="sess-contract-1",
+        ), client.observation(
+            name="retriever.search",
+            as_type="retriever",
+            input={"query": "docs"},
+            output={"docs": ["a", "b"]},
         ):
-            with client.observation(
-                name="retriever.search",
-                as_type="retriever",
-                input={"query": "docs"},
-                output={"docs": ["a", "b"]},
-            ):
-                emb = client.start_embedding(
-                    name="embedding.encode",
-                    attributes={
-                        "gen_ai.request.model": "text-embedding-3-small",
-                        "gen_ai.usage.input_tokens": 12,
-                        "gen_ai.usage.total_tokens": 12,
-                    },
-                )
-                emb.end()
+            emb = client.start_embedding(
+                name="embedding.encode",
+                attributes={
+                    "gen_ai.request.model": "text-embedding-3-small",
+                    "gen_ai.usage.input_tokens": 12,
+                    "gen_ai.usage.total_tokens": 12,
+                },
+            )
+            emb.end()
 
         with client.generation(
             name="generation.answer",
