@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import os
 
 import pytest
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
@@ -13,7 +14,8 @@ from softprobe.scores import build_score_request
 from softprobe.types import ScoreRequest, ScoreTransport
 
 ROOT = Path(__file__).resolve().parents[1]
-FIXTURES = ROOT / "contracts" / "fixtures"
+CONTRACTS_ROOT = Path(os.environ.get("SOFTPROBE_CONTRACTS_ROOT", ROOT / "contracts"))
+FIXTURES = CONTRACTS_ROOT / "fixtures"
 
 
 class MemoryScoreTransport(ScoreTransport):
