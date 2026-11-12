@@ -1,17 +1,18 @@
 from __future__ import annotations
 
 import json
+from types import SimpleNamespace
 from uuid import uuid4
 
 from langchain_core.callbacks.manager import CallbackManager
 from langchain_core.documents import Document
 from langchain_core.messages import AIMessage, HumanMessage
-from langchain_core.outputs import ChatGeneration, LLMResult
+from langchain_core.outputs import ChatGeneration, Generation, LLMResult
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
 from softprobe.client import SoftprobeClient
 from softprobe.identity import resolve_run_identity
-from softprobe.langchain import CallbackHandler
+from softprobe.langchain import CallbackHandler, _extract_usage
 from softprobe.langchain_instrument import (
     auto_instrument_from_env,
     instrument,
@@ -295,3 +296,192 @@ def test_langgraph_state_and_tool_message_serialize() -> None:
     spans = normalize_readable_spans(list(exporter.get_finished_spans()))
     assert any(s["name"] == "multiply" for s in spans)
     client.shutdown()
+
+
+def _export_generation_attrs(response: LLMResult, model: str = "gemini-2.5-pro") -> dict[str, object]:
+    client, exporter = make_client()
+    handler = CallbackHandler(softprobe_client=client)
+    llm_id = uuid4()
+    handler.on_chat_model_start(
+        {"id": ["ChatVertexAI"], "kwargs": {"model": model}},
+        [[HumanMessage(content="explain")]],
+        run_id=llm_id,
+        name="ChatVertexAI",
+        invocation_params={"model": model},
+    )
+    handler.on_llm_end(response, run_id=llm_id)
+    client.force_flush()
+    spans = normalize_readable_spans(list(exporter.get_finished_spans()))
+    client.shutdown()
+    assert len(spans) == 1
+    return dict(spans[0]["attributes"])
+
+
+def test_chat_vertex_ai_usage_metadata_preserves_reasoning_total_tokens() -> None:
+    response = LLMResult(
+        generations=[
+            [
+                ChatGeneration(
+                    message=AIMessage(
+                        content="ok",
+                        usage_metadata={
+                            "input_tokens": 120,
+                            "output_tokens": 30,
+                            "total_tokens": 185,
+                        },
+                    )
+                )
+            ]
+        ],
+        llm_output={},
+    )
+    assert _extract_usage(response) == {
+        "input_tokens": 120,
+        "output_tokens": 30,
+        "total_tokens": 185,
+    }
+    attrs = _export_generation_attrs(response)
+    assert attrs["gen_ai.usage.input_tokens"] == 120
+    assert attrs["gen_ai.usage.output_tokens"] == 30
+    assert attrs["gen_ai.usage.total_tokens"] == 185
+
+
+def test_multi_generation_usage_metadata_aggregates_across_generations() -> None:
+    response = LLMResult(
+        generations=[
+            [
+                ChatGeneration(
+                    message=AIMessage(
+                        content="first",
+                        usage_metadata={
+                            "input_tokens": 100,
+                            "output_tokens": 20,
+                            "total_tokens": 145,
+                        },
+                    )
+                ),
+                ChatGeneration(
+                    message=AIMessage(
+                        content="second",
+                        usage_metadata={
+                            "input_tokens": 100,
+                            "output_tokens": 25,
+                            "total_tokens": 140,
+                        },
+                    )
+                ),
+            ],
+            [
+                ChatGeneration.model_construct(
+                    text="third-without-explicit-total",
+                    message=AIMessage.model_construct(
+                        content="third-without-explicit-total",
+                        usage_metadata={"input_tokens": 10, "output_tokens": 5},
+                    ),
+                ),
+                Generation(text="plain-text-without-usage"),
+            ],
+        ],
+        llm_output={"token_usage": {}},
+    )
+    assert _extract_usage(response) == {
+        "input_tokens": 210,
+        "output_tokens": 50,
+        "total_tokens": 300,
+    }
+    attrs = _export_generation_attrs(response)
+    assert attrs["gen_ai.usage.input_tokens"] == 210
+    assert attrs["gen_ai.usage.output_tokens"] == 50
+    assert attrs["gen_ai.usage.total_tokens"] == 300
+
+
+def test_llm_output_and_usage_metadata_do_not_double_count() -> None:
+    response = LLMResult(
+        generations=[
+            [
+                ChatGeneration(
+                    message=AIMessage(
+                        content="ok",
+                        usage_metadata={
+                            "input_tokens": 50,
+                            "output_tokens": 12,
+                            "total_tokens": 62,
+                        },
+                    )
+                )
+            ]
+        ],
+        llm_output={
+            "token_usage": {
+                "prompt_tokens": 50,
+                "completion_tokens": 12,
+                "total_tokens": 62,
+            }
+        },
+    )
+    assert _extract_usage(response) == {
+        "input_tokens": 50,
+        "output_tokens": 12,
+        "total_tokens": 62,
+    }
+    attrs = _export_generation_attrs(response, model="gpt-4o-mini")
+    assert attrs["gen_ai.usage.input_tokens"] == 50
+    assert attrs["gen_ai.usage.output_tokens"] == 12
+    assert attrs["gen_ai.usage.total_tokens"] == 62
+
+
+def test_legacy_llm_output_token_usage_without_usage_metadata() -> None:
+    response = LLMResult(
+        generations=[[ChatGeneration(message=AIMessage(content="4"))]],
+        llm_output={
+            "token_usage": {
+                "prompt_tokens": 18,
+                "completion_tokens": 7,
+                "total_tokens": 25,
+            }
+        },
+    )
+    assert _extract_usage(response) == {
+        "input_tokens": 18,
+        "output_tokens": 7,
+        "total_tokens": 25,
+    }
+    attrs = _export_generation_attrs(response, model="gpt-4o-mini")
+    assert attrs["gen_ai.usage.input_tokens"] == 18
+    assert attrs["gen_ai.usage.output_tokens"] == 7
+    assert attrs["gen_ai.usage.total_tokens"] == 25
+
+    anthropic_legacy = LLMResult(
+        generations=[[ChatGeneration(message=AIMessage(content="ok"))]],
+        llm_output={"usage": {"input_tokens": 22, "output_tokens": 8}},
+    )
+    anthropic_attrs = _export_generation_attrs(anthropic_legacy, model="claude-sonnet-4-5")
+    assert anthropic_attrs["gen_ai.usage.input_tokens"] == 22
+    assert anthropic_attrs["gen_ai.usage.output_tokens"] == 8
+    assert anthropic_attrs["gen_ai.usage.total_tokens"] == 30
+
+
+def test_usage_metadata_object_attribute_access_and_total_fallback() -> None:
+    object_meta_gen = ChatGeneration.model_construct(
+        text="attribute-based",
+        message=AIMessage.model_construct(
+            content="attribute-based",
+            usage_metadata=SimpleNamespace(input_tokens=40, output_tokens=15, total_tokens=None),
+        ),
+    )
+    object_meta_result = LLMResult(generations=[[object_meta_gen]], llm_output=None)
+    assert _extract_usage(object_meta_result) == {
+        "input_tokens": 40,
+        "output_tokens": 15,
+        "total_tokens": 55,
+    }
+
+    empty_response = LLMResult(
+        generations=[[ChatGeneration(message=AIMessage(content="no usage"))]],
+        llm_output={},
+    )
+    assert _extract_usage(empty_response) is None
+    empty_attrs = _export_generation_attrs(empty_response)
+    assert "gen_ai.usage.input_tokens" not in empty_attrs
+    assert "gen_ai.usage.output_tokens" not in empty_attrs
+    assert "gen_ai.usage.total_tokens" not in empty_attrs
