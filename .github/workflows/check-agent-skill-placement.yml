@@ -1,0 +1,40 @@
+name: Agent skill placement
+
+on:
+  pull_request_target:
+
+permissions:
+  pull-requests: read
+
+jobs:
+  check:
+    name: Agent skill placement
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v9
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const pull_number = context.payload.pull_request.number;
+            const { data: pull } = await github.rest.pulls.get({ owner, repo, pull_number });
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner,
+              repo,
+              pull_number,
+              per_page: 100,
+            });
+            if (pull.changed_files > files.length) {
+              core.setFailed(`GitHub returned ${files.length} of ${pull.changed_files} changed files. Cannot verify every path.`);
+              return;
+            }
+
+            const violations = files
+              .filter(file => file.status !== 'removed')
+              .filter(file => /(^|\/)\.(?:agents|cursor|agent)\/skills(?:\/|$)/.test(file.filename))
+              .map(file => file.filename);
+            if (violations.length > 0) {
+              core.error('Keep developer skills in the softprobe/dev workspace root .agents/skills/.');
+              core.setFailed(`This repository adds or changes prohibited skill paths:\n${violations.join('\n')}`);
+              return;
+            }
+            core.info('The pull request adds no skills under repository-local agent skill directories.');
