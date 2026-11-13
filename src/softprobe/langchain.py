@@ -74,19 +74,69 @@ def _serialize_tool_calls(tool_calls: Any) -> list[Any]:
     return out
 
 
-def _extract_usage(response: LLMResult) -> dict[str, int] | None:
-    llm_output = response.llm_output or {}
-    token_usage = llm_output.get("token_usage") or llm_output.get("usage") or {}
-    if not isinstance(token_usage, Mapping):
+def _token_int(value: Any) -> int | None:
+    if value is None or isinstance(value, bool):
         return None
-    result: dict[str, int] = {}
-    if "prompt_tokens" in token_usage:
-        result["input_tokens"] = int(token_usage["prompt_tokens"])
-    if "completion_tokens" in token_usage:
-        result["output_tokens"] = int(token_usage["completion_tokens"])
-    if "total_tokens" in token_usage:
-        result["total_tokens"] = int(token_usage["total_tokens"])
-    return result or None
+    if isinstance(value, (int, float)):
+        return int(value)
+    if isinstance(value, str):
+        try:
+            return int(value)
+        except ValueError:
+            return None
+    return None
+
+
+def _read_token_count(source: Any, *keys: str) -> int | None:
+    for key in keys:
+        raw = source.get(key) if isinstance(source, Mapping) else getattr(source, key, None)
+        parsed = _token_int(raw)
+        if parsed is not None:
+            return parsed
+    return None
+
+
+def _usage_from_source(source: Any) -> dict[str, int] | None:
+    if source is None:
+        return None
+    input_tokens = _read_token_count(source, "input_tokens", "prompt_tokens")
+    output_tokens = _read_token_count(source, "output_tokens", "completion_tokens")
+    total_tokens = _read_token_count(source, "total_tokens")
+    if input_tokens is None and output_tokens is None and total_tokens is None:
+        return None
+    usage: dict[str, int] = {}
+    if input_tokens is not None:
+        usage["input_tokens"] = input_tokens
+    if output_tokens is not None:
+        usage["output_tokens"] = output_tokens
+    if total_tokens is not None:
+        usage["total_tokens"] = total_tokens
+    elif usage:
+        usage["total_tokens"] = usage.get("input_tokens", 0) + usage.get("output_tokens", 0)
+    return usage
+
+
+def _extract_usage(response: LLMResult) -> dict[str, int] | None:
+    # Return llm_output first so providers setting both llm_output and usage_metadata count once.
+    llm_output = response.llm_output
+    if isinstance(llm_output, Mapping):
+        for key in ("token_usage", "usage"):
+            usage = _usage_from_source(llm_output.get(key))
+            if usage is not None:
+                return usage
+
+    totals: dict[str, int] = {}
+    for batch in response.generations or []:
+        for gen in batch or []:
+            message = getattr(gen, "message", None)
+            if message is None:
+                continue
+            gen_usage = _usage_from_source(getattr(message, "usage_metadata", None))
+            if gen_usage is None:
+                continue
+            for key, value in gen_usage.items():
+                totals[key] = totals.get(key, 0) + value
+    return totals or None
 
 
 def _extract_model_name(
