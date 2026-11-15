@@ -4,6 +4,13 @@ from typing import Any
 
 from softprobe.client import SoftprobeClient
 from softprobe.observation import Generation, Observation
+from softprobe.propagation import (
+    BAGGAGE_SESSION_KEY,
+    BaggageSessionSpanProcessor,
+    extract_trace_headers,
+    get_baggage_session_id,
+    inject_trace_headers,
+)
 from softprobe.redaction import default_redact_keys, redact_value
 from softprobe.scores import build_score_request
 from softprobe.tools import (
@@ -18,7 +25,9 @@ from softprobe.tools import (
 from softprobe.types import OBSERVATION_TYPES
 
 __all__ = [
+    "BAGGAGE_SESSION_KEY",
     "OBSERVATION_TYPES",
+    "BaggageSessionSpanProcessor",
     "CallbackHandler",
     "Generation",
     "Observation",
@@ -26,7 +35,10 @@ __all__ = [
     "accumulate_tool_call_deltas",
     "build_score_request",
     "default_redact_keys",
+    "extract_trace_headers",
     "finalize_tool_call_deltas",
+    "get_baggage_session_id",
+    "inject_trace_headers",
     "normalize_tool_calls",
     "normalize_tool_definitions",
     "observe_openai",

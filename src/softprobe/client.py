@@ -28,7 +28,7 @@ from softprobe.observation import (
     start_generation,
     start_observation,
 )
-from softprobe.propagation import propagate_attributes
+from softprobe.propagation import BaggageSessionSpanProcessor, propagate_attributes
 from softprobe.redaction import default_redact_keys
 from softprobe.scores import HttpScoreTransport, build_score_request
 from softprobe.tools import tool_span_attributes
@@ -92,6 +92,7 @@ class SoftprobeClient:
             else BatchSpanProcessor(exporter)
         )
         self._provider = TracerProvider(resource=Resource.create(resource_attrs))
+        self._provider.add_span_processor(BaggageSessionSpanProcessor())
         self._provider.add_span_processor(processor)
         # Avoid set_tracer_provider so multiple clients/tests can coexist.
         # Parent/child linking uses explicit context attach on observations.
