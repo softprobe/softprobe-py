@@ -149,7 +149,7 @@ class SoftprobeClient:
         else:
             source.setdefault("SOFTPROBE_BASE_URL", DEFAULT_THELAKE_BASE_URL)
         if explicit_key:
-            source["SOFTPROBE_PUBLIC_KEY"] = explicit_key
+            source["INGESTION_KEY"] = explicit_key
         cfg = resolve_softprobe_config_from_env(source)
         if cfg is None:
             raise MissingSoftprobeCredentialsError(

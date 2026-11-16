@@ -141,7 +141,8 @@ def resolve_softprobe_config_from_env(
         _parse_key_value_list(source.get("OTEL_EXPORTER_OTLP_TRACES_HEADERS")),
     )
     ingestion_key = _bearer_token(_get_header(headers, "authorization")) or (
-        as_non_empty_string(source.get("SOFTPROBE_PUBLIC_KEY"))
+        as_non_empty_string(source.get("INGESTION_KEY"))
+        or as_non_empty_string(source.get("SOFTPROBE_PUBLIC_KEY"))
     )
     base_url = as_non_empty_string(source.get("SOFTPROBE_BASE_URL"))
     if not ingestion_key:

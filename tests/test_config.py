@@ -111,6 +111,17 @@ def test_resolve_softprobe_config_from_env_otel_without_api_base() -> None:
     assert cfg["otlp_endpoint"] == "https://explorer-staging.softprobe.ai/api/thelake/v1/traces"
     assert cfg["resource_attributes"] == {"deployment.environment.name": "staging"}
 
+
+def test_resolve_softprobe_config_from_env_ingestion_key_directly() -> None:
+    cfg = resolve_softprobe_config_from_env({
+        "INGESTION_KEY": "staging-key",
+        "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT":
+            "https://explorer-staging.softprobe.ai/api/thelake/v1/traces",
+    })
+    assert cfg is not None
+    assert cfg["ingestion_key"] == "staging-key"
+    assert cfg["otlp_endpoint"] == "https://explorer-staging.softprobe.ai/api/thelake/v1/traces"
+
 def test_resolve_softprobe_config_from_mapping_validates() -> None:
     with pytest.raises(MissingSoftprobeCredentialsError):
         resolve_softprobe_config_from_mapping({})
