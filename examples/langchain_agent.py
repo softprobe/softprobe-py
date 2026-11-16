@@ -1,9 +1,7 @@
 """Softprobe LangChain example — docs best path (zero invoke callbacks edits).
 
-Requires:
-
-  export SOFTPROBE_PUBLIC_KEY=…
-  export SOFTPROBE_BASE_URL=…
+Requires the standard OTLP endpoint and authorization-header environment
+variables shown in `examples/README.md`.
   export GEMINI_KEY=…   # or OPENAI_API_KEY
 
 Softprobe reads configurable.thread_id — it does not mint session UUIDs.
@@ -15,7 +13,7 @@ import json
 import os
 import sys
 
-# Best path: auto-instrument when SOFTPROBE_* credentials are set.
+# Best path: auto-instrument when standard OTLP authorization is set.
 import softprobe.langchain  # noqa: F401
 from softprobe.langchain import get_handler, instrument
 

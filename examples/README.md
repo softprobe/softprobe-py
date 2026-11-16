@@ -16,14 +16,13 @@ Install steps match [Agent QA → LangChain](https://docs.softprobe.ai/en/agent-
 
 ```bash
 export INGESTION_KEY="<Ingestion Key>"
-export SOFTPROBE_BASE_URL="https://explorer-staging.softprobe.ai/api/thelake"
 export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT="https://explorer-staging.softprobe.ai/api/thelake/v1/traces"
 export OTEL_EXPORTER_OTLP_TRACES_HEADERS="Authorization=Bearer ${INGESTION_KEY}"
 export OTEL_EXPORTER_OTLP_TRACES_PROTOCOL="http/protobuf"
 export OTEL_RESOURCE_ATTRIBUTES="deployment.environment.name=staging"
 ```
 
-Set `INGESTION_KEY` to the Ingestion Key from Explorer before running these examples. For a local thelake started with `SOFTPROBE_LOCAL_ANONYMOUS=1`, set `SOFTPROBE_BASE_URL=http://127.0.0.1:8090` and use a non-empty `Authorization` value; thelake ignores credentials in that explicit mode.
+Set `INGESTION_KEY` to the Ingestion Key from Explorer before running these examples. The exact OTLP traces endpoint selects the trace destination. Set `SOFTPROBE_BASE_URL` only for examples that write scores to a non-production API. For a local thelake started with `SOFTPROBE_LOCAL_ANONYMOUS=1`, set both `SOFTPROBE_BASE_URL=http://127.0.0.1:8090` and `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://127.0.0.1:8090/v1/traces`; thelake ignores credentials in that explicit mode.
 
 ## Run
 

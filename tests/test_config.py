@@ -91,11 +91,29 @@ def test_resolve_generic_otel_endpoint_appends_trace_path() -> None:
 
 def test_resolve_softprobe_config_from_env_missing_both() -> None:
     assert resolve_softprobe_config_from_env({}) is None
-    assert resolve_softprobe_config_from_env({"SOFTPROBE_PUBLIC_KEY": "pk"}) is None
+    cfg = resolve_softprobe_config_from_env({"SOFTPROBE_PUBLIC_KEY": "pk"})
+    assert cfg is not None
+    assert cfg["base_url"] == "https://explorer.softprobe.ai/api/thelake"
+    assert cfg["otlp_endpoint"] == "https://explorer.softprobe.ai/api/thelake/v1/traces"
+
+
+def test_resolve_softprobe_config_from_env_otel_without_api_base() -> None:
+    cfg = resolve_softprobe_config_from_env({
+        "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT":
+            "https://explorer-staging.softprobe.ai/api/thelake/v1/traces",
+        "OTEL_EXPORTER_OTLP_TRACES_HEADERS": "Authorization=Bearer staging-key",
+        "OTEL_EXPORTER_OTLP_TRACES_PROTOCOL": "http/protobuf",
+        "OTEL_RESOURCE_ATTRIBUTES": "deployment.environment.name=staging",
+    })
+    assert cfg is not None
+    assert cfg["ingestion_key"] == "staging-key"
+    assert cfg["base_url"] == "https://explorer.softprobe.ai/api/thelake"
+    assert cfg["otlp_endpoint"] == "https://explorer-staging.softprobe.ai/api/thelake/v1/traces"
+    assert cfg["resource_attributes"] == {"deployment.environment.name": "staging"}
 
 def test_resolve_softprobe_config_from_mapping_validates() -> None:
     with pytest.raises(MissingSoftprobeCredentialsError):
-        resolve_softprobe_config_from_mapping({"public_key": "pk"})
+        resolve_softprobe_config_from_mapping({})
 
 def test_resolve_softprobe_config_from_mapping_all_keys() -> None:
     cfg = resolve_softprobe_config_from_mapping({
@@ -119,7 +137,7 @@ def test_resolve_softprobe_config_from_mapping_all_keys() -> None:
 def test_resolve_softprobe_config_from_mapping_accepts_ingestion_and_otlp_options() -> None:
     cfg = resolve_softprobe_config_from_mapping({
         "ingestion_key": "staging-key",
-        "base_url": "https://explorer-staging.softprobe.ai/api/thelake",
+        "base_url": "https://scores.example.test/api",
         "otlp": {
             "endpoint": "https://collector.example/base",
             "traces_endpoint": "https://explorer-staging.softprobe.ai/api/thelake/v1/traces",
@@ -130,6 +148,7 @@ def test_resolve_softprobe_config_from_mapping_accepts_ingestion_and_otlp_option
     })
 
     assert cfg["ingestion_key"] == "staging-key"
+    assert cfg["base_url"] == "https://scores.example.test/api"
     assert cfg["otlp_endpoint"] == "https://explorer-staging.softprobe.ai/api/thelake/v1/traces"
     assert cfg["otlp"] == {
         "endpoint": "https://collector.example/base",
@@ -138,6 +157,33 @@ def test_resolve_softprobe_config_from_mapping_accepts_ingestion_and_otlp_option
         "headers": {"x-direct": "yes"},
     }
     assert cfg["resource_attributes"] == {"deployment.environment.name": "staging"}
+
+
+def test_resolve_softprobe_config_from_mapping_needs_no_second_api_base() -> None:
+    cfg = resolve_softprobe_config_from_mapping({
+        "ingestion_key": "staging-key",
+        "otlp": {
+            "traces_endpoint":
+                "https://explorer-staging.softprobe.ai/api/thelake/v1/traces",
+            "protocol": "http/protobuf",
+        },
+    })
+    assert cfg["base_url"] == "https://explorer.softprobe.ai/api/thelake"
+    assert cfg["otlp_endpoint"] == "https://explorer-staging.softprobe.ai/api/thelake/v1/traces"
+
+
+def test_resolve_softprobe_config_from_mapping_defaults_to_production_endpoint() -> None:
+    cfg = resolve_softprobe_config_from_mapping({"ingestion_key": "pk"})
+    assert cfg["base_url"] == "https://explorer.softprobe.ai/api/thelake"
+    assert cfg["otlp_endpoint"] == "https://explorer.softprobe.ai/api/thelake/v1/traces"
+
+
+def test_resolve_softprobe_config_from_mapping_rejects_blank_api_base() -> None:
+    with pytest.raises(MissingSoftprobeCredentialsError, match="base_url"):
+        resolve_softprobe_config_from_mapping({
+            "ingestion_key": "pk",
+            "base_url": "",
+        })
 
 
 def test_resolve_softprobe_config_rejects_unsupported_protocol() -> None:

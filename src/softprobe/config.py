@@ -144,8 +144,9 @@ def resolve_softprobe_config_from_env(
         as_non_empty_string(source.get("SOFTPROBE_PUBLIC_KEY"))
     )
     base_url = as_non_empty_string(source.get("SOFTPROBE_BASE_URL"))
-    if not ingestion_key or not base_url:
+    if not ingestion_key:
         return None
+    base_url = base_url or DEFAULT_THELAKE_BASE_URL
 
     attributes = _parse_key_value_list(source.get("OTEL_RESOURCE_ATTRIBUTES"))
     service_name = (
@@ -191,10 +192,23 @@ def resolve_softprobe_config_from_mapping(
         or raw.get("public_key")
         or raw.get("publicKey")
     )
-    base_url = as_non_empty_string(raw.get("base_url") or raw.get("baseUrl"))
-    if not ingestion_key or not base_url:
+    raw_base_url = (
+        raw.get("base_url")
+        if raw.get("base_url") is not None
+        else raw.get("baseUrl")
+    )
+    base_url = (
+        DEFAULT_THELAKE_BASE_URL
+        if raw_base_url is None
+        else as_non_empty_string(raw_base_url)
+    )
+    if not ingestion_key:
         raise MissingSoftprobeCredentialsError(
-            "ingestion_key and base_url are required"
+            "ingestion_key is required"
+        )
+    if not base_url:
+        raise MissingSoftprobeCredentialsError(
+            "base_url must be non-empty when provided"
         )
 
     raw_otlp = raw.get("otlp")

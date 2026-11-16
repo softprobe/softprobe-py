@@ -74,7 +74,6 @@ def test_accepts_ingestion_key_otlp_options_and_resource_attributes() -> None:
     exporter = InMemorySpanExporter()
     client = SoftprobeClient(
         ingestion_key="staging-key",
-        base_url="https://explorer-staging.softprobe.ai/api/thelake",
         otlp={
             "traces_endpoint": "https://explorer-staging.softprobe.ai/api/thelake/v1/traces",
             "protocol": "http/protobuf",
