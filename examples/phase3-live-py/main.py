@@ -19,15 +19,13 @@ MODEL = os.environ.get("PHASE3_MODEL", "gpt-4o-mini")
 API_KEY = os.environ["PHASE3_API_KEY"]
 BASE_URL = os.environ.get("PHASE3_BASE_URL")
 BASE = os.environ.get("SOFTPROBE_BASE_URL", "http://127.0.0.1:8090")
-PUBLIC_KEY = os.environ.get("SOFTPROBE_PUBLIC_KEY", "e2e-token")
-OTLP = os.environ.get("SOFTPROBE_OTLP_ENDPOINT", f"{BASE}/v1/traces")
+ingestion_key = os.environ.get("INGESTION_KEY", "e2e-token")
 
 
 def main() -> None:
-    sp = SoftprobeClient(
-        public_key=PUBLIC_KEY,
+    sp = SoftprobeClient.from_env(
+        ingestion_key=ingestion_key,
         base_url=BASE,
-        otlp_endpoint=OTLP,
         service_name=f"phase3-live-py-{PROVIDER}",
         service_version="0.1.0",
         environment="e2e",

@@ -1,8 +1,8 @@
 """Zero-setup LangChain instrumentation (env auto + ``instrument()``).
 
-When ``SOFTPROBE_PUBLIC_KEY`` and ``SOFTPROBE_BASE_URL`` are set, Softprobe
+When standard OTLP authorization headers contain the Ingestion Key, Softprobe
 registers into LangChain's callback configure hooks so every run is traced
-without editing ``callbacks``.
+without editing ``callbacks``. The Softprobe API base defaults to production.
 
 Opt out: ``SOFTPROBE_LANGCHAIN=0``.
 """
@@ -13,7 +13,10 @@ import os
 from contextvars import ContextVar
 from typing import TYPE_CHECKING, Any
 
-from softprobe.config import resolve_softprobe_config_from_env
+from softprobe.config import (
+    DEFAULT_THELAKE_BASE_URL,
+    resolve_softprobe_config_from_env,
+)
 
 try:
     from langchain_core.callbacks import BaseCallbackHandler
@@ -80,6 +83,10 @@ def auto_instrument_from_env(**handler_kwargs: Any) -> CallbackHandler | None:
     """Instrument when Softprobe credentials are present (unless disabled)."""
     if _env_flag_disabled():
         return None
-    if resolve_softprobe_config_from_env() is None:
+    env = dict(os.environ)
+    env["SOFTPROBE_BASE_URL"] = (
+        env.get("SOFTPROBE_BASE_URL", "").strip() or DEFAULT_THELAKE_BASE_URL
+    )
+    if resolve_softprobe_config_from_env(env) is None:
         return None
     return instrument(**handler_kwargs)

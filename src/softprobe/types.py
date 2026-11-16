@@ -40,7 +40,7 @@ ScoreSource = Literal["api", "user", "evaluator", "annotation"]
 
 @dataclass
 class SoftprobeConfig:
-    public_key: str
+    ingestion_key: str
     base_url: str
     otlp_endpoint: str
     service_name: str = "softprobe-app"

@@ -16,8 +16,7 @@ OUT_PATH = Path(
 )
 SESSION_ID = os.environ.get("TOOL_CALL_SESSION_ID", "sess-tool-call-py")
 BASE_URL = os.environ.get("SOFTPROBE_BASE_URL", "http://127.0.0.1:8090")
-PUBLIC_KEY = os.environ.get("SOFTPROBE_PUBLIC_KEY", "e2e-token")
-OTLP_ENDPOINT = os.environ.get("SOFTPROBE_OTLP_ENDPOINT", f"{BASE_URL}/v1/traces")
+ingestion_key = os.environ.get("INGESTION_KEY", "e2e-token")
 
 TOOLS = [
     {
@@ -42,10 +41,9 @@ TOOL_CALLS = [
 
 
 def main() -> None:
-    client = SoftprobeClient(
-        public_key=PUBLIC_KEY,
+    client = SoftprobeClient.from_env(
+        ingestion_key=ingestion_key,
         base_url=BASE_URL,
-        otlp_endpoint=OTLP_ENDPOINT,
         service_name="tool-call-example-py",
         service_version="0.1.0",
         environment="e2e",

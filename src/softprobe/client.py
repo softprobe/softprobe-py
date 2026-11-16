@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from collections.abc import AsyncIterator, Iterator, Mapping
 from contextlib import asynccontextmanager, contextmanager
 from datetime import datetime
@@ -16,9 +17,13 @@ from opentelemetry.sdk.trace.export import (
 from opentelemetry.semconv.resource import ResourceAttributes
 
 from softprobe.config import (
+    DEFAULT_THELAKE_BASE_URL,
     MissingSoftprobeCredentialsError,
+    as_non_empty_string,
     derive_otlp_endpoint,
+    merge_otlp_headers,
     resolve_softprobe_config_from_env,
+    validate_otlp_protocol,
 )
 from softprobe.observation import (
     Generation,
@@ -39,9 +44,11 @@ class SoftprobeClient:
     def __init__(
         self,
         *,
-        public_key: str,
-        base_url: str,
+        ingestion_key: str | None = None,
+        base_url: str = DEFAULT_THELAKE_BASE_URL,
         otlp_endpoint: str | None = None,
+        otlp: Mapping[str, Any] | None = None,
+        resource_attributes: Mapping[str, Any] | None = None,
         service_name: str = "softprobe-app",
         service_version: str | None = None,
         environment: str | None = None,
@@ -56,16 +63,23 @@ class SoftprobeClient:
         score_transport: ScoreTransport | None = None,
         use_simple_processor: bool = False,
     ) -> None:
-        if not public_key or not public_key.strip():
-            raise ValueError("public_key is required")
+        key = (ingestion_key or "").strip()
+        if not key:
+            raise ValueError("ingestion_key is required")
         if not base_url or not base_url.strip():
             raise ValueError("base_url is required")
         base_url = base_url.strip()
-        resolved_otlp = (
-            otlp_endpoint.strip()
-            if otlp_endpoint and otlp_endpoint.strip()
-            else derive_otlp_endpoint(base_url)
+        otlp_options = otlp or {}
+        generic_endpoint = as_non_empty_string(otlp_options.get("endpoint"))
+        traces_endpoint = as_non_empty_string(
+            otlp_options.get("traces_endpoint") or otlp_options.get("tracesEndpoint")
         )
+        resolved_otlp = (
+            traces_endpoint
+            or as_non_empty_string(otlp_endpoint)
+            or derive_otlp_endpoint(generic_endpoint or DEFAULT_THELAKE_BASE_URL)
+        )
+        validate_otlp_protocol(otlp_options.get("protocol"))
         if span_exporter is None and not resolved_otlp:
             raise ValueError("otlp_endpoint is required")
 
@@ -77,13 +91,18 @@ class SoftprobeClient:
             resource_attrs[ResourceAttributes.SERVICE_VERSION] = service_version
         if environment:
             resource_attrs["deployment.environment.name"] = environment
+        resource_attrs.update(dict(resource_attributes or {}))
+
+        otlp_headers = otlp_options.get("headers")
+        exporter_headers = merge_otlp_headers(
+            otlp_headers if isinstance(otlp_headers, Mapping) else None,
+            headers,
+            {"Authorization": f"Bearer {key}"},
+        )
 
         exporter = span_exporter or OTLPSpanExporter(
             endpoint=resolved_otlp,
-            headers={
-                "Authorization": f"Bearer {public_key}",
-                **dict(headers or {}),
-            },
+            headers=exporter_headers,
             timeout=timeout_ms / 1000.0,
         )
         processor = (
@@ -107,7 +126,7 @@ class SoftprobeClient:
         )
         self._score_transport = score_transport or HttpScoreTransport(
             base_url,
-            public_key.strip(),
+            key,
             headers or {},
             timeout_ms,
         )
@@ -115,20 +134,65 @@ class SoftprobeClient:
 
     @classmethod
     def from_env(cls, **overrides: Any) -> SoftprobeClient:
-        """Build a client from ``SOFTPROBE_*`` environment variables.
-
-        Requires ``SOFTPROBE_PUBLIC_KEY`` and ``SOFTPROBE_BASE_URL``.
-        Keyword overrides are merged on top of the resolved env config.
-        """
-        cfg = resolve_softprobe_config_from_env()
+        """Build a client from standard OTLP variables and Softprobe settings."""
+        source = dict(os.environ)
+        explicit_key = overrides.get("ingestion_key")
+        explicit_base_url = overrides.get("base_url")
+        if explicit_base_url:
+            source["SOFTPROBE_BASE_URL"] = explicit_base_url
+        else:
+            source.setdefault("SOFTPROBE_BASE_URL", DEFAULT_THELAKE_BASE_URL)
+        if explicit_key:
+            source["INGESTION_KEY"] = explicit_key
+        cfg = resolve_softprobe_config_from_env(source)
         if cfg is None:
             raise MissingSoftprobeCredentialsError(
-                "Set SOFTPROBE_PUBLIC_KEY and SOFTPROBE_BASE_URL"
+                "Set OTEL_EXPORTER_OTLP_HEADERS or OTEL_EXPORTER_OTLP_TRACES_HEADERS "
+                "with the Ingestion Key, or pass ingestion_key"
             )
+        direct_otlp = overrides.get("otlp") or {}
+        env_otlp = cfg["otlp"]
+        explicit_endpoint = (
+            as_non_empty_string(direct_otlp.get("traces_endpoint"))
+            or as_non_empty_string(direct_otlp.get("tracesEndpoint"))
+            or as_non_empty_string(overrides.get("otlp_endpoint"))
+        )
+        direct_generic_endpoint = as_non_empty_string(direct_otlp.get("endpoint"))
+        resolved_endpoint = explicit_endpoint or (
+            derive_otlp_endpoint(direct_generic_endpoint)
+            if direct_generic_endpoint
+            else env_otlp["traces_endpoint"]
+        )
+        env_headers = env_otlp.get("headers")
+        direct_headers = direct_otlp.get("headers")
+        otlp_options: dict[str, Any] = {
+            "traces_endpoint": resolved_endpoint,
+            "protocol": direct_otlp.get("protocol") or env_otlp.get("protocol"),
+            "headers": merge_otlp_headers(
+                env_headers if isinstance(env_headers, Mapping) else None,
+                direct_headers if isinstance(direct_headers, Mapping) else None,
+                overrides.get("headers"),
+            ),
+        }
+        generic_endpoint = direct_generic_endpoint or env_otlp.get("endpoint")
+        if generic_endpoint:
+            otlp_options["endpoint"] = generic_endpoint
+        attributes = dict(cfg.get("resource_attributes", {}))
+        explicit_attributes = dict(overrides.get("resource_attributes") or {})
+        attributes.update(explicit_attributes)
+        if overrides.get("service_name") and "service.name" not in explicit_attributes:
+            attributes["service.name"] = overrides["service_name"]
+        if (
+            overrides.get("environment")
+            and "deployment.environment.name" not in explicit_attributes
+        ):
+            attributes["deployment.environment.name"] = overrides["environment"]
         kwargs: dict[str, Any] = {
-            "public_key": cfg["public_key"],
+            "ingestion_key": explicit_key or cfg["ingestion_key"],
             "base_url": cfg["base_url"],
-            "otlp_endpoint": cfg.get("otlp_endpoint"),
+            "otlp_endpoint": resolved_endpoint,
+            "otlp": otlp_options,
+            "resource_attributes": attributes,
         }
         if cfg.get("environment"):
             kwargs["environment"] = cfg["environment"]
@@ -138,7 +202,14 @@ class SoftprobeClient:
             kwargs["user_id"] = cfg["user_id"]
         if cfg.get("service_name"):
             kwargs["service_name"] = cfg["service_name"]
-        kwargs.update(overrides)
+        kwargs.update({
+            name: value
+            for name, value in overrides.items()
+            if name not in {
+                "ingestion_key", "otlp", "otlp_endpoint",
+                "resource_attributes",
+            }
+        })
         return cls(**kwargs)
 
     def start_observation(

@@ -18,7 +18,7 @@ class MemoryScoreTransport(ScoreTransport):
 def make_client() -> tuple[SoftprobeClient, InMemorySpanExporter]:
     exporter = InMemorySpanExporter()
     client = SoftprobeClient(
-        public_key="test-key",
+        ingestion_key="test-key",
         base_url="http://127.0.0.1:8091",
         otlp_endpoint="http://127.0.0.1:8091/v1/traces",
         span_exporter=exporter,

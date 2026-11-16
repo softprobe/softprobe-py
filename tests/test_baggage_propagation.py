@@ -14,7 +14,7 @@ from softprobe import (
 def _make_client() -> tuple[SoftprobeClient, InMemorySpanExporter]:
     exporter = InMemorySpanExporter()
     client = SoftprobeClient(
-        public_key="spk_test",
+        ingestion_key="spk_test",
         base_url="http://127.0.0.1:8091",
         span_exporter=exporter,
         use_simple_processor=True,

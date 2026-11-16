@@ -1,9 +1,7 @@
 """Softprobe basic example — SoftprobeClient.from_env().
 
-Requires:
-
-  export SOFTPROBE_PUBLIC_KEY=…
-  export SOFTPROBE_BASE_URL=…
+Requires the standard OTLP endpoint and authorization-header environment
+variables shown in `examples/README.md`.
 """
 
 from __future__ import annotations

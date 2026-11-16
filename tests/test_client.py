@@ -33,7 +33,7 @@ def make_client(
     exporter = InMemorySpanExporter()
     scores = MemoryScoreTransport()
     client = SoftprobeClient(
-        public_key="test-key",
+        ingestion_key="test-key",
         base_url="http://127.0.0.1:8091",
         otlp_endpoint="http://127.0.0.1:8091/v1/traces",
         service_name="softprobe-sdk-contract",
@@ -47,26 +47,65 @@ def make_client(
     return client, exporter, scores
 
 
-def test_rejects_missing_public_key() -> None:
-    with pytest.raises(ValueError, match="public_key"):
+def test_rejects_missing_ingestion_key() -> None:
+    with pytest.raises(ValueError, match="ingestion_key"):
         SoftprobeClient(
-            public_key="",
+            ingestion_key="",
             base_url="http://localhost",
             otlp_endpoint="http://localhost/v1/traces",
         )
 
 
-def test_derives_otlp_endpoint_from_base_url() -> None:
+def test_score_base_url_does_not_change_trace_endpoint(monkeypatch: pytest.MonkeyPatch) -> None:
+    from opentelemetry.sdk.trace.export import SpanExporter, SpanExportResult
+    import softprobe.client as client_module
+
+    captured: dict[str, str] = {}
+
+    class _CaptureExporter(SpanExporter):
+        def __init__(self, *, endpoint: str, **kwargs: object) -> None:
+            captured["endpoint"] = endpoint
+
+        def export(self, spans):  # type: ignore[no-untyped-def]
+            return SpanExportResult.SUCCESS
+
+        def shutdown(self) -> None:
+            return None
+
+    monkeypatch.setattr(client_module, "OTLPSpanExporter", _CaptureExporter)
+    client = SoftprobeClient(
+        ingestion_key="test-key",
+        base_url="https://scores.example.test/api",
+        use_simple_processor=True,
+    )
+    assert captured["endpoint"] == "https://explorer.softprobe.ai/api/thelake/v1/traces"
+    client.shutdown()
+
+
+def test_accepts_ingestion_key_otlp_options_and_resource_attributes() -> None:
     exporter = InMemorySpanExporter()
     client = SoftprobeClient(
-        public_key="test-key",
-        base_url="http://127.0.0.1:8091",
+        ingestion_key="staging-key",
+        otlp={
+            "traces_endpoint": "https://explorer-staging.softprobe.ai/api/thelake/v1/traces",
+            "protocol": "http/protobuf",
+            "headers": {"x-direct": "yes"},
+        },
+        resource_attributes={
+            "deployment.environment.name": "staging",
+            "custom.region": "us-west",
+        },
         span_exporter=exporter,
         use_simple_processor=True,
     )
-    client.start_observation(name="ping", as_type="span").end()
+    client.start_observation(name="direct-config", as_type="span").end()
     client.force_flush()
-    assert len(exporter.get_finished_spans()) == 1
+
+    attributes = exporter.get_finished_spans()[0].resource.attributes
+    assert attributes["service.name"] == "softprobe-app"
+    assert attributes["telemetry.sdk.name"] == "softprobe"
+    assert attributes["deployment.environment.name"] == "staging"
+    assert attributes["custom.region"] == "us-west"
     client.shutdown()
 
 
