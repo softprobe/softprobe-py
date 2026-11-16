@@ -10,7 +10,6 @@ DEFAULT_THELAKE_BASE_URL = "https://explorer.softprobe.ai/api/thelake"
 
 class ResolvedSoftprobeConfig(TypedDict, total=False):
     ingestion_key: str
-    public_key: str
     base_url: str
     otlp_endpoint: str
     otlp: dict[str, Any]
@@ -142,7 +141,6 @@ def resolve_softprobe_config_from_env(
     )
     ingestion_key = _bearer_token(_get_header(headers, "authorization")) or (
         as_non_empty_string(source.get("INGESTION_KEY"))
-        or as_non_empty_string(source.get("SOFTPROBE_PUBLIC_KEY"))
     )
     base_url = as_non_empty_string(source.get("SOFTPROBE_BASE_URL"))
     if not ingestion_key:
@@ -164,7 +162,6 @@ def resolve_softprobe_config_from_env(
     otlp = _resolve_otlp(source, base_url)
     config: ResolvedSoftprobeConfig = {
         "ingestion_key": ingestion_key,
-        "public_key": ingestion_key,
         "base_url": base_url,
         "otlp_endpoint": otlp["traces_endpoint"],
         "otlp": otlp,
@@ -185,14 +182,7 @@ def resolve_softprobe_config_from_env(
 def resolve_softprobe_config_from_mapping(
     raw: Mapping[str, Any],
 ) -> ResolvedSoftprobeConfig:
-    ingestion_key = as_non_empty_string(
-        raw.get("ingestion_key")
-        or raw.get("ingestionKey")
-        or raw.get("api_key")
-        or raw.get("apiKey")
-        or raw.get("public_key")
-        or raw.get("publicKey")
-    )
+    ingestion_key = as_non_empty_string(raw.get("ingestion_key"))
     raw_base_url = (
         raw.get("base_url")
         if raw.get("base_url") is not None
@@ -256,7 +246,6 @@ def resolve_softprobe_config_from_mapping(
 
     config: ResolvedSoftprobeConfig = {
         "ingestion_key": ingestion_key,
-        "public_key": ingestion_key,
         "base_url": base_url,
         "otlp_endpoint": resolved_endpoint,
         "otlp": otlp,

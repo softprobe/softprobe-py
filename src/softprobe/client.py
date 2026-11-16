@@ -45,8 +45,6 @@ class SoftprobeClient:
         self,
         *,
         ingestion_key: str | None = None,
-        public_key: str | None = None,
-        api_key: str | None = None,
         base_url: str = DEFAULT_THELAKE_BASE_URL,
         otlp_endpoint: str | None = None,
         otlp: Mapping[str, Any] | None = None,
@@ -65,7 +63,7 @@ class SoftprobeClient:
         score_transport: ScoreTransport | None = None,
         use_simple_processor: bool = False,
     ) -> None:
-        key = (ingestion_key or api_key or public_key or "").strip()
+        key = (ingestion_key or "").strip()
         if not key:
             raise ValueError("ingestion_key is required")
         if not base_url or not base_url.strip():
@@ -138,11 +136,7 @@ class SoftprobeClient:
     def from_env(cls, **overrides: Any) -> SoftprobeClient:
         """Build a client from standard OTLP variables and Softprobe settings."""
         source = dict(os.environ)
-        explicit_key = (
-            overrides.get("ingestion_key")
-            or overrides.get("api_key")
-            or overrides.get("public_key")
-        )
+        explicit_key = overrides.get("ingestion_key")
         explicit_base_url = overrides.get("base_url")
         if explicit_base_url:
             source["SOFTPROBE_BASE_URL"] = explicit_base_url
@@ -212,7 +206,7 @@ class SoftprobeClient:
             name: value
             for name, value in overrides.items()
             if name not in {
-                "ingestion_key", "api_key", "public_key", "otlp", "otlp_endpoint",
+                "ingestion_key", "otlp", "otlp_endpoint",
                 "resource_attributes",
             }
         })

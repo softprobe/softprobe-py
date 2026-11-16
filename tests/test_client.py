@@ -33,7 +33,7 @@ def make_client(
     exporter = InMemorySpanExporter()
     scores = MemoryScoreTransport()
     client = SoftprobeClient(
-        public_key="test-key",
+        ingestion_key="test-key",
         base_url="http://127.0.0.1:8091",
         otlp_endpoint="http://127.0.0.1:8091/v1/traces",
         service_name="softprobe-sdk-contract",
@@ -50,7 +50,7 @@ def make_client(
 def test_rejects_missing_ingestion_key() -> None:
     with pytest.raises(ValueError, match="ingestion_key"):
         SoftprobeClient(
-            public_key="",
+            ingestion_key="",
             base_url="http://localhost",
             otlp_endpoint="http://localhost/v1/traces",
         )
@@ -59,7 +59,7 @@ def test_rejects_missing_ingestion_key() -> None:
 def test_derives_otlp_endpoint_from_base_url() -> None:
     exporter = InMemorySpanExporter()
     client = SoftprobeClient(
-        public_key="test-key",
+        ingestion_key="test-key",
         base_url="http://127.0.0.1:8091",
         span_exporter=exporter,
         use_simple_processor=True,

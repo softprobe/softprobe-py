@@ -71,12 +71,12 @@ class HttpScoreTransport(ScoreTransport):
     def __init__(
         self,
         base_url: str,
-        public_key: str,
+        ingestion_key: str,
         headers: Mapping[str, str],
         timeout_ms: int,
     ) -> None:
         self._url = f"{base_url.rstrip('/')}/v1/llm/scores"
-        self._public_key = public_key
+        self._ingestion_key = ingestion_key
         self._headers = dict(headers)
         self._timeout_s = timeout_ms / 1000.0
 
@@ -87,7 +87,7 @@ class HttpScoreTransport(ScoreTransport):
             data=payload,
             method="POST",
             headers={
-                "Authorization": f"Bearer {self._public_key}",
+                "Authorization": f"Bearer {self._ingestion_key}",
                 "Content-Type": "application/json",
                 **self._headers,
             },

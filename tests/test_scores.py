@@ -103,7 +103,7 @@ def test_http_score_transport_success(monkeypatch: pytest.MonkeyPatch) -> None:
 
     transport = HttpScoreTransport(
         base_url="http://example.com/",
-        public_key="test_key",
+        ingestion_key="test_key",
         headers={"X-Test": "foo"},
         timeout_ms=2500,
     )
