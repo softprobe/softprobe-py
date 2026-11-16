@@ -228,6 +228,47 @@ def test_auto_instrument_from_env(monkeypatch) -> None:
     uninstrument()
 
 
+def test_auto_instrument_from_standard_otel_env_without_base_url(monkeypatch) -> None:
+    uninstrument()
+    monkeypatch.delenv("SOFTPROBE_BASE_URL", raising=False)
+    monkeypatch.delenv("SOFTPROBE_PUBLIC_KEY", raising=False)
+    monkeypatch.setenv(
+        "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT",
+        "https://explorer-staging.softprobe.ai/api/thelake/v1/traces",
+    )
+    monkeypatch.setenv(
+        "OTEL_EXPORTER_OTLP_TRACES_HEADERS",
+        "Authorization=Bearer staging-key",
+    )
+    monkeypatch.setenv("OTEL_EXPORTER_OTLP_TRACES_PROTOCOL", "http/protobuf")
+    monkeypatch.delenv("SOFTPROBE_LANGCHAIN", raising=False)
+
+    from softprobe import client as client_mod
+
+    exporter = InMemorySpanExporter()
+
+    def _from_env(**overrides):
+        return SoftprobeClient(
+            ingestion_key="staging-key",
+            base_url="https://explorer.softprobe.ai/api/thelake",
+            otlp_endpoint="https://explorer-staging.softprobe.ai/api/thelake/v1/traces",
+            span_exporter=exporter,
+            score_transport=MemoryScoreTransport(),
+            use_simple_processor=True,
+            **overrides,
+        )
+
+    monkeypatch.setattr(
+        client_mod.SoftprobeClient,
+        "from_env",
+        classmethod(lambda cls, **kwargs: _from_env(**kwargs)),
+    )
+    handler = auto_instrument_from_env()
+    assert handler is not None
+    assert is_instrumented()
+    uninstrument()
+
+
 def test_explicit_parent_and_metadata() -> None:
     client, exporter = make_client()
     parent = client.start_observation(name="parent", as_type="agent")

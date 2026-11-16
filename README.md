@@ -20,9 +20,31 @@ Docs: [Agent QA → LangChain](https://docs.softprobe.ai/en/agent-qa/langchain) 
 See [`examples/README.md`](examples/README.md).
 
 ```bash
-export SOFTPROBE_PUBLIC_KEY="spk_…"
-export SOFTPROBE_BASE_URL="https://explorer.softprobe.ai/api/thelake"
+export INGESTION_KEY="<Ingestion Key>"
+export SOFTPROBE_BASE_URL="https://explorer-staging.softprobe.ai/api/thelake"
+export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT="https://explorer-staging.softprobe.ai/api/thelake/v1/traces"
+export OTEL_EXPORTER_OTLP_TRACES_HEADERS="Authorization=Bearer ${INGESTION_KEY}"
+export OTEL_EXPORTER_OTLP_TRACES_PROTOCOL="http/protobuf"
+export OTEL_RESOURCE_ATTRIBUTES="deployment.environment.name=staging"
 python examples/basic.py
+```
+
+The Ingestion Key is the bearer value in the standard OTLP headers. `SOFTPROBE_BASE_URL` also selects the API base for score writes. You can pass the same trace settings directly:
+
+```python
+import os
+
+from softprobe import SoftprobeClient
+
+client = SoftprobeClient(
+    ingestion_key=os.environ["INGESTION_KEY"],
+    base_url="https://explorer-staging.softprobe.ai/api/thelake",
+    otlp={
+        "traces_endpoint": "https://explorer-staging.softprobe.ai/api/thelake/v1/traces",
+        "protocol": "http/protobuf",
+    },
+    resource_attributes={"deployment.environment.name": "staging"},
+)
 ```
 
 ## Develop

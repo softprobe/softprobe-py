@@ -47,8 +47,8 @@ def make_client(
     return client, exporter, scores
 
 
-def test_rejects_missing_public_key() -> None:
-    with pytest.raises(ValueError, match="public_key"):
+def test_rejects_missing_ingestion_key() -> None:
+    with pytest.raises(ValueError, match="ingestion_key"):
         SoftprobeClient(
             public_key="",
             base_url="http://localhost",
@@ -67,6 +67,34 @@ def test_derives_otlp_endpoint_from_base_url() -> None:
     client.start_observation(name="ping", as_type="span").end()
     client.force_flush()
     assert len(exporter.get_finished_spans()) == 1
+    client.shutdown()
+
+
+def test_accepts_ingestion_key_otlp_options_and_resource_attributes() -> None:
+    exporter = InMemorySpanExporter()
+    client = SoftprobeClient(
+        ingestion_key="staging-key",
+        base_url="https://explorer-staging.softprobe.ai/api/thelake",
+        otlp={
+            "traces_endpoint": "https://explorer-staging.softprobe.ai/api/thelake/v1/traces",
+            "protocol": "http/protobuf",
+            "headers": {"x-direct": "yes"},
+        },
+        resource_attributes={
+            "deployment.environment.name": "staging",
+            "custom.region": "us-west",
+        },
+        span_exporter=exporter,
+        use_simple_processor=True,
+    )
+    client.start_observation(name="direct-config", as_type="span").end()
+    client.force_flush()
+
+    attributes = exporter.get_finished_spans()[0].resource.attributes
+    assert attributes["service.name"] == "softprobe-app"
+    assert attributes["telemetry.sdk.name"] == "softprobe"
+    assert attributes["deployment.environment.name"] == "staging"
+    assert attributes["custom.region"] == "us-west"
     client.shutdown()
 
 
