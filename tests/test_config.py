@@ -25,7 +25,7 @@ def test_resolve_softprobe_config_from_env_all_keys() -> None:
     env = {
         "INGESTION_KEY": "pk",
         "SOFTPROBE_BASE_URL": "http://test",
-        "SOFTPROBE_OTLP_ENDPOINT": "http://test/traces",
+        "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT": "http://test/traces",
         "SOFTPROBE_ENVIRONMENT": "dev",
         "SOFTPROBE_SESSION_ID": "sess-123",
         "SOFTPROBE_USER_ID": "user-456",
@@ -93,6 +93,16 @@ def test_resolve_softprobe_config_from_env_ingestion_key_uses_defaults() -> None
     cfg = resolve_softprobe_config_from_env({"INGESTION_KEY": "pk"})
     assert cfg is not None
     assert cfg["base_url"] == "https://explorer.softprobe.ai/api/thelake"
+    assert cfg["otlp_endpoint"] == "https://explorer.softprobe.ai/api/thelake/v1/traces"
+
+
+def test_score_base_url_does_not_change_default_trace_endpoint() -> None:
+    cfg = resolve_softprobe_config_from_env({
+        "INGESTION_KEY": "pk",
+        "SOFTPROBE_BASE_URL": "https://scores.example.test/api",
+    })
+    assert cfg is not None
+    assert cfg["base_url"] == "https://scores.example.test/api"
     assert cfg["otlp_endpoint"] == "https://explorer.softprobe.ai/api/thelake/v1/traces"
 
 
@@ -185,6 +195,15 @@ def test_resolve_softprobe_config_from_mapping_needs_no_second_api_base() -> Non
 def test_resolve_softprobe_config_from_mapping_defaults_to_production_endpoint() -> None:
     cfg = resolve_softprobe_config_from_mapping({"ingestion_key": "pk"})
     assert cfg["base_url"] == "https://explorer.softprobe.ai/api/thelake"
+    assert cfg["otlp_endpoint"] == "https://explorer.softprobe.ai/api/thelake/v1/traces"
+
+
+def test_mapping_score_base_url_does_not_change_default_trace_endpoint() -> None:
+    cfg = resolve_softprobe_config_from_mapping({
+        "ingestion_key": "pk",
+        "base_url": "https://scores.example.test/api",
+    })
+    assert cfg["base_url"] == "https://scores.example.test/api"
     assert cfg["otlp_endpoint"] == "https://explorer.softprobe.ai/api/thelake/v1/traces"
 
 

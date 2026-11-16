@@ -29,10 +29,10 @@ python examples/basic.py
 ```
 
 The Ingestion Key is the bearer value in the standard OTLP headers. The full
-trace endpoint selects where traces go. Set `SOFTPROBE_BASE_URL` for score
-writes to a non-production API; with an explicit OTLP endpoint, it only affects
-score writes. Without either custom setting, the SDK uses the production trace
-URL. You can pass the trace settings directly:
+trace endpoint selects where traces go. Set `SOFTPROBE_BASE_URL` only when
+explicit score writes should use a non-production API; it does not affect trace
+export. Without an OTLP endpoint, the SDK uses the production trace URL. You can
+pass the trace settings directly:
 
 Without a custom endpoint, the SDK exports traces to
 `https://explorer.softprobe.ai/api/thelake/v1/traces`.
@@ -53,8 +53,8 @@ client = SoftprobeClient(
 ```
 
 `base_url` is optional here; it defaults to the production score API. Set it
-separately if score writes should use staging. When no OTLP endpoint is set, a
-custom `base_url` remains the legacy trace endpoint fallback.
+separately if score writes should use staging. It never changes the trace
+destination. Without an OTLP endpoint, traces use the production trace URL.
 
 ## Develop
 

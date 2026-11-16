@@ -56,17 +56,29 @@ def test_rejects_missing_ingestion_key() -> None:
         )
 
 
-def test_derives_otlp_endpoint_from_base_url() -> None:
-    exporter = InMemorySpanExporter()
+def test_score_base_url_does_not_change_trace_endpoint(monkeypatch: pytest.MonkeyPatch) -> None:
+    from opentelemetry.sdk.trace.export import SpanExporter, SpanExportResult
+    import softprobe.client as client_module
+
+    captured: dict[str, str] = {}
+
+    class _CaptureExporter(SpanExporter):
+        def __init__(self, *, endpoint: str, **kwargs: object) -> None:
+            captured["endpoint"] = endpoint
+
+        def export(self, spans):  # type: ignore[no-untyped-def]
+            return SpanExportResult.SUCCESS
+
+        def shutdown(self) -> None:
+            return None
+
+    monkeypatch.setattr(client_module, "OTLPSpanExporter", _CaptureExporter)
     client = SoftprobeClient(
         ingestion_key="test-key",
-        base_url="http://127.0.0.1:8091",
-        span_exporter=exporter,
+        base_url="https://scores.example.test/api",
         use_simple_processor=True,
     )
-    client.start_observation(name="ping", as_type="span").end()
-    client.force_flush()
-    assert len(exporter.get_finished_spans()) == 1
+    assert captured["endpoint"] == "https://explorer.softprobe.ai/api/thelake/v1/traces"
     client.shutdown()
 
 

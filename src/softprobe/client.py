@@ -77,7 +77,7 @@ class SoftprobeClient:
         resolved_otlp = (
             traces_endpoint
             or as_non_empty_string(otlp_endpoint)
-            or derive_otlp_endpoint(generic_endpoint or base_url)
+            or derive_otlp_endpoint(generic_endpoint or DEFAULT_THELAKE_BASE_URL)
         )
         validate_otlp_protocol(otlp_options.get("protocol"))
         if span_exporter is None and not resolved_otlp:

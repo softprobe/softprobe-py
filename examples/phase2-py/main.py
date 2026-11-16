@@ -14,14 +14,12 @@ OUT_PATH = Path(os.environ.get("PHASE2_IDS_PATH", ROOT / "examples" / ".phase2-i
 SESSION_ID = os.environ.get("PHASE2_SESSION_ID", "sess-phase2-py")
 BASE_URL = os.environ.get("SOFTPROBE_BASE_URL", "http://127.0.0.1:8090")
 ingestion_key = os.environ.get("INGESTION_KEY", "e2e-token")
-OTLP_ENDPOINT = os.environ.get("SOFTPROBE_OTLP_ENDPOINT", f"{BASE_URL}/v1/traces")
 
 
 def main() -> None:
-    client = SoftprobeClient(
+    client = SoftprobeClient.from_env(
         ingestion_key=ingestion_key,
         base_url=BASE_URL,
-        otlp_endpoint=OTLP_ENDPOINT,
         service_name="phase2-example-py",
         service_version="0.1.0",
         environment="e2e",

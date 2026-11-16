@@ -31,10 +31,10 @@ def as_non_empty_string(value: Any) -> str | None:
     return trimmed if trimmed else None
 
 
-def derive_otlp_endpoint(base_url: str, explicit: str | None = None) -> str:
+def derive_otlp_endpoint(endpoint: str, explicit: str | None = None) -> str:
     if explicit and explicit.strip():
         return explicit.strip()
-    return f"{base_url.rstrip('/')}/v1/traces"
+    return f"{endpoint.rstrip('/')}/v1/traces"
 
 
 def _parse_key_value_list(value: str | None) -> dict[str, str]:
@@ -84,14 +84,11 @@ def validate_otlp_protocol(value: Any) -> str:
     return protocol
 
 
-def _resolve_otlp(
-    source: Mapping[str, str | None], base_url: str
-) -> dict[str, Any]:
+def _resolve_otlp(source: Mapping[str, str | None]) -> dict[str, Any]:
     endpoint = as_non_empty_string(source.get("OTEL_EXPORTER_OTLP_ENDPOINT"))
     traces_endpoint = as_non_empty_string(
         source.get("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT")
     )
-    legacy_endpoint = as_non_empty_string(source.get("SOFTPROBE_OTLP_ENDPOINT"))
     protocol = validate_otlp_protocol(
         as_non_empty_string(source.get("OTEL_EXPORTER_OTLP_TRACES_PROTOCOL"))
         or as_non_empty_string(source.get("OTEL_EXPORTER_OTLP_PROTOCOL"))
@@ -103,8 +100,7 @@ def _resolve_otlp(
     resolved_endpoint = (
         traces_endpoint
         or (derive_otlp_endpoint(endpoint) if endpoint else None)
-        or legacy_endpoint
-        or derive_otlp_endpoint(base_url)
+        or derive_otlp_endpoint(DEFAULT_THELAKE_BASE_URL)
     )
     otlp: dict[str, Any] = {
         "traces_endpoint": resolved_endpoint,
@@ -159,7 +155,7 @@ def resolve_softprobe_config_from_env(
         as_non_empty_string(attributes.get("deployment.environment.name"))
         or as_non_empty_string(source.get("SOFTPROBE_ENVIRONMENT"))
     )
-    otlp = _resolve_otlp(source, base_url)
+    otlp = _resolve_otlp(source)
     config: ResolvedSoftprobeConfig = {
         "ingestion_key": ingestion_key,
         "base_url": base_url,
@@ -214,7 +210,7 @@ def resolve_softprobe_config_from_mapping(
     resolved_endpoint = (
         traces_endpoint
         or legacy_endpoint
-        or derive_otlp_endpoint(endpoint or base_url)
+        or derive_otlp_endpoint(endpoint or DEFAULT_THELAKE_BASE_URL)
     )
     protocol = validate_otlp_protocol(otlp_values.get("protocol"))
     extra_headers = otlp_values.get("headers")
